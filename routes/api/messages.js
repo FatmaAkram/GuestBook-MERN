@@ -38,7 +38,7 @@ router.get('/', auth, async (req, res) => {
       console.error(err.message);
       res.status(500).send('Server Error');
     }
-  });
+});
 // Get message by ID
 // GET api/messages/:id
 
@@ -51,7 +51,20 @@ router.get('/:id', auth, async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
-  });
+});
+// Get message by ID
+// GET api/messages/:id
+
+router.get('/:id', auth, async (req, res) => {
+    try {
+
+      const message = await Message.findById(req.params.id);
+      res.json(message);  
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
 
 // Delete message
 // DELETE api/messages/:id
@@ -73,5 +86,32 @@ router.delete('/:id', auth, async (req, res) => {
     }
   });
 
+// Add Reply
+// POST api/messages/reply/:id
+
+router.post('/reply/:id',[auth,[
+    check('text','Text is required').not().isEmpty()
+]],
+async (req,res) =>{
+    const errors = validationResult(req);
+    if (!errors.isEmpty()){
+        return res.status(400).json({ errors : errors.array() })
+    } 
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        const message = await Message.findById(req.params.id);
+
+        const newReply = {
+            text : req.body.text,
+            user : req.user.id
+        };
+        message.replies.unshift(newReply);
+        await message.save();
+        res.json(message);
+    } catch (error) {
+        console.log(error.message);
+        return res.status(500).send('Server Error');
+    }
+});
   
 module.exports = router;
